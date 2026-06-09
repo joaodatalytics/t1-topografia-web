@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>T1 Topografia — Gestão</title>
+  
+  <link rel="icon" href="icone.png?v=2" type="image/png" />
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="sidebar-logo" style="display: flex; align-items: center; justify-content: center; padding: 24px 20px; border-bottom: 1px solid var(--border); margin-bottom: 8px;">
+      <img src="logo.png" alt="T1 Topografia e Projetos" style="max-height: 60px; max-width: 100%; object-fit: contain;">
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" id="menu-board" class="nav-item active">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Semana
+      </a>
+      <a href="#" id="menu-timeline" class="nav-item">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+        Quadro de Avisos
+      </a>
+      <a href="#" id="menu-team" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Equipe
+      </a>
+      <a href="#" id="menu-reports" class="nav-item">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Relatórios
+      </a>
+    </nav>
+
+    <div class="sidebar-members">
+      <h4>Membros</h4>
+      <ul id="members-list" class="members-list"></ul>
+    </div>
+
+    <div class="sidebar-legend">
+      <h4>Status</h4>
+      <div class="legend-item"><span class="badge badge--a_fazer"></span>A fazer</div>
+      <div class="legend-item"><span class="badge badge--em_andamento"></span>Em andamento</div>
+      <div class="legend-item"><span class="badge badge--concluido"></span>Concluído</div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div id="board-view" style="display: flex; flex-direction: column; flex: 1; height: 100%;">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="btn-icon" id="btn-prev-week" title="Semana anterior">
+            <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <h1 class="week-label" id="week-label">Semana de 01 a 07 de Jan</h1>
+          <button class="btn-icon" id="btn-next-week" title="Próxima semana">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+          <button class="btn-today" id="btn-today">Hoje</button>
+        </div>
+
+       <div class="topbar-right">
+         <button class="btn-icon" id="btn-theme-toggle" title="Alternar Tema Claro/Escuro" style="margin-right: 10px;">
+           <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2">
+             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+           </svg>
+         </button>
+
+         <div class="search-wrap">
+           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+           <input type="text" id="search-input" placeholder="Buscar tarefa…" />
+         </div>
+
+         <button class="btn-primary" id="btn-add-task">
+           <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+           Nova Tarefa
+         </button>
+       </div>
+      </header>
+
+      <div class="board-container">
+        <div class="board" id="board">
+          <div class="board-corner"></div>
+        </div>
+      </div>
+
+      <div class="statsbar">
+        <div class="stat" id="stat-total">
+          <span class="stat-num">0</span>
+          <span class="stat-lbl">Total</span>
+        </div>
+        <div class="stat stat--a_fazer" id="stat-a_fazer">
+          <span class="stat-num">0</span>
+          <span class="stat-lbl">A fazer</span>
+        </div>
+        <div class="stat stat--em_andamento" id="stat-em_andamento">
+          <span class="stat-num">0</span>
+          <span class="stat-lbl">Em andamento</span>
+        </div>
+        <div class="stat stat--concluido" id="stat-concluido">
+          <span class="stat-num">0</span>
+          <span class="stat-lbl">Concluídas</span>
+        </div>
+      </div>
+    </div> 
+
+    <div id="timeline-view" style="display: none; padding: 30px; overflow-y: auto; color: var(--txt-primary); flex: 1;">
+        <h2 style="font-family: 'Syne', sans-serif; font-size: 24px; margin-bottom: 20px;">Quadro de Avisos</h2>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border);">
+            <button id="tab-levantamentos" class="btn-ghost" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 2px solid var(--accent); color: var(--accent); font-weight: bold;">Levantamentos</button>
+            <button id="tab-obras" class="btn-ghost" style="border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: 2px solid transparent;">Obras</button>
+        </div>
+
+        <div id="content-levantamentos" style="display: block;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <select id="filter-levantamentos" class="form-input" style="width: 250px;">
+                    <option value="todos">Todos os levantamentos</option>
+                    <option value="planimetrico">Somente Planimétrico</option>
+                    <option value="planialtimetrico">Somente Planialtimétrico</option>
+                </select>
+                <button class="btn-primary" onclick="addAviso('levantamento')">+ Nova Pendência</button>
+            </div>
+            <div id="list-levantamentos" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+
+        <div id="content-obras" style="display: none;">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+                <button class="btn-primary" onclick="addAviso('obra')">+ Nova Pendência</button>
+            </div>
+            <div id="list-obras" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+    </div>
+
+    <div id="team-view" style="display: none; padding: 30px; overflow-y: auto; color: var(--txt-primary); flex: 1;">
+        <h2 style="font-family: 'Syne', sans-serif; font-size: 24px; margin-bottom: 20px;">Equipe</h2>
+        <button id="btn-add-member" class="btn-primary" style="margin-bottom: 24px; display: inline-flex;">+ Novo Membro</button>
+        
+        <div id="team-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+            </div>
+    </div>
+
+    <div id="reports-view" style="display: none; padding: 30px; overflow-y: auto; color: var(--txt-primary); flex: 1;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+                <h2 style="font-family: 'Syne', sans-serif; font-size: 24px; margin-bottom: 5px;">Relatórios Gerais</h2>
+                <p style="color: var(--txt-secondary); margin: 0;">Visão geral do volume de tarefas da equipe.</p>
+            </div>
+            <button class="btn-ghost" id="btn-export-csv" onclick="exportToCSV()" style="display: flex; align-items: center; gap: 8px; border-color: var(--c-concluido); color: var(--c-concluido);">
+                <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Exportar CSV
+            </button>
+        </div>
+        
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
+            <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; flex: 1; min-width: 220px; border-top: 4px solid var(--c-a_fazer); box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+                <h3 style="margin: 0 0 15px 0; font-size: 16px; color: var(--txt-secondary);">Tarefas A Fazer</h3>
+                <p id="count-todo" style="font-size: 42px; font-weight: bold; margin: 0; color: var(--c-a_fazer); font-family: 'Syne', sans-serif;">0</p>
+            </div>
+            <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; flex: 1; min-width: 220px; border-top: 4px solid var(--c-em_andamento); box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+                <h3 style="margin: 0 0 15px 0; font-size: 16px; color: var(--txt-secondary);">Em Andamento</h3>
+                <p id="count-doing" style="font-size: 42px; font-weight: bold; margin: 0; color: var(--c-em_andamento); font-family: 'Syne', sans-serif;">0</p>
+            </div>
+            <div style="background: var(--bg-card); padding: 25px; border-radius: 12px; flex: 1; min-width: 220px; border-top: 4px solid var(--c-concluido); box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-left: 1px solid var(--border); border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+                <h3 style="margin: 0 0 15px 0; font-size: 16px; color: var(--txt-secondary);">Concluídas</h3>
+                <p id="count-done" style="font-size: 42px; font-weight: bold; margin: 0; color: var(--c-concluido); font-family: 'Syne', sans-serif;">0</p>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+            <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                <h3 style="margin-bottom: 20px; font-size: 16px; color: var(--txt-primary); text-align: center;">Progresso da Semana</h3>
+                <div style="position: relative; height: 300px; width: 100%; display: flex; justify-content: center;">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+            <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                <h3 style="margin-bottom: 20px; font-size: 16px; color: var(--txt-primary); text-align: center;">Carga de Trabalho (Por Membro)</h3>
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="memberChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+  </main>
+
+  <div class="modal-overlay" id="modal-task" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Nova Tarefa</h2>
+        <button class="btn-icon modal-close" id="modal-close">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="task-id" />
+
+        <label class="form-label" for="task-titulo">Título da tarefa</label>
+        <input class="form-input" type="text" id="task-titulo" placeholder="Ex: Reunião de planejamento" />
+
+        <label class="form-label" for="task-descricao">Descrição (opcional)</label>
+        <textarea class="form-input form-textarea" id="task-descricao" placeholder="Detalhes da tarefa…"></textarea>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="task-dia">Dia da semana</label>
+            <select class="form-input" id="task-dia">
+              <option value="1">Segunda-feira</option>
+              <option value="2">Terça-feira</option>
+              <option value="3">Quarta-feira</option>
+              <option value="4">Quinta-feira</option>
+              <option value="5">Sexta-feira</option>
+              <option value="6">Sábado</option>
+              <option value="7">Domingo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="task-turno">Turno</label>
+            <select class="form-input" id="task-turno">
+              <option value="manha">🌅 Manhã</option>
+              <option value="tarde">☀️ Tarde</option>
+              <option value="noite">🌙 Noite</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="task-status">Status</label>
+            <select class="form-input" id="task-status">
+              <option value="a_fazer">A fazer</option>
+              <option value="em_andamento">Em andamento</option>
+              <option value="concluido">Concluído</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="task-user">Responsável</label>
+            <select class="form-input" id="task-user"></select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" id="modal-cancel">Cancelar</button>
+        <button class="btn-primary" id="modal-save">Salvar Tarefa</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-detail" role="dialog" aria-modal="true">
+    <div class="modal modal--detail">
+      <div class="modal-header">
+        <div class="detail-header-info">
+          <span class="detail-badge" id="detail-badge"></span>
+          <h2 id="detail-titulo"></h2>
+        </div>
+        <button class="btn-icon modal-close" id="detail-close">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="detail-descricao" class="detail-descricao"></p>
+        <div class="detail-meta">
+          <div class="meta-item"><span class="meta-icon">👤</span><span id="detail-user"></span></div>
+          <div class="meta-item"><span class="meta-icon">📅</span><span id="detail-dia"></span></div>
+          <div class="meta-item"><span class="meta-icon">🕐</span><span id="detail-turno"></span></div>
+        </div>
+
+        <div id="detail-subtasks-container" style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;">
+            <h4 style="font-size: 12px; color: var(--txt-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">Checklist da Tarefa</h4>
+            <div id="detail-subtasks-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;"></div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="new-subtask-input" class="form-input" placeholder="Adicionar nova subtarefa..." style="padding: 6px 10px; font-size: 13px;">
+                <button class="btn-primary" id="btn-add-subtask" style="padding: 6px 12px; font-size: 12px;">Add</button>
+            </div>
+        </div>
+        
+        <div class="detail-status-bar">
+          <span class="status-option" data-status="a_fazer">A fazer</span>
+          <span class="status-option" data-status="em_andamento">Em andamento</span>
+          <span class="status-option" data-status="concluido">Concluído</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost btn-danger" id="detail-delete">Excluir</button>
+        <button class="btn-primary" id="detail-edit">Editar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-member" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width: 450px;">
+      <div class="modal-header">
+        <h2>Novo Membro da Equipe</h2>
+        <button class="btn-icon modal-close" onclick="closeMemberModal()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label" for="member-nome">Nome</label>
+        <input class="form-input" type="text" id="member-nome" placeholder="Ex: João Silva" />
+
+        <label class="form-label" for="member-cargo">Cargo/Função</label>
+        <input class="form-input" type="text" id="member-cargo" placeholder="Ex: Topógrafo" />
+
+        <label class="form-label" for="member-email">E-mail (opcional)</label>
+        <input class="form-input" type="email" id="member-email" placeholder="Ex: joao@t1topografia.com" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeMemberModal()">Cancelar</button>
+        <button class="btn-primary" onclick="saveMember()">Salvar Membro</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-aviso" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width: 450px;">
+      <div class="modal-header">
+        <h2 id="aviso-modal-title">Nova Pendência</h2>
+        <button class="btn-icon modal-close" onclick="closeAvisoModal()">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="aviso-category" />
+
+        <div id="aviso-tipo-container" style="display: none;">
+          <label class="form-label" for="aviso-tipo">Tipo de Levantamento</label>
+          <select class="form-input" id="aviso-tipo" style="margin-bottom: 15px;">
+            <option value="planimetrico">Planimétrico</option>
+            <option value="planialtimetrico">Planialtimétrico</option>
+          </select>
+        </div>
+
+        <label class="form-label" for="aviso-desc">Descrição</label>
+        <textarea class="form-input form-textarea" id="aviso-desc" placeholder="Descreva a pendência..."></textarea>
+
+        <label class="form-label" for="aviso-prazo" style="margin-top: 15px;">Data Limite (opcional)</label>
+        <input class="form-input" type="text" id="aviso-prazo" placeholder="Ex: 15/10/2026 ou 'Amanhã'" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeAvisoModal()">Cancelar</button>
+        <button class="btn-primary" onclick="saveAviso()">Salvar Pendência</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-confirm" role="dialog" aria-modal="true">
+    <div class="modal" style="max-width: 400px; text-align: center;">
+      <div class="modal-header" style="justify-content: center; border-bottom: none; padding-bottom: 0;">
+        <h2 style="color: var(--txt-primary);">Atenção</h2>
+      </div>
+      <div class="modal-body">
+        <p id="confirm-message" style="margin: 0; color: var(--txt-secondary); font-size: 15px;"></p>
+      </div>
+      <div class="modal-footer" style="justify-content: center; border-top: none; gap: 15px;">
+        <button class="btn-ghost" onclick="closeConfirm(false)">Cancelar</button>
+        <button class="btn-primary" onclick="closeConfirm(true)" style="background-color: #e85555; border-color: #e85555; color: white;">Sim, Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js?v=4"></script>
+</body>
+</html>
