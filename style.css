@@ -21,10 +21,10 @@
 
   /* Cores da T1 Topografia */
   --accent:        #F37021; 
-  --accent-glow:   rgba(243, 112, 33, 0.15); /* Brilho mais suave para fundo branco */
+  --accent-glow:   rgba(243, 112, 33, 0.15); 
   --accent-hover:  #D65F1A; 
 
-  /* Cores de Status (Ajustadas para leitura no fundo claro) */
+  /* Cores de Status */
   --c-a_fazer:      #7b82a0;
   --c-em_andamento: #e8a33a;
   --c-concluido:    #3cba6e;
@@ -47,7 +47,6 @@
 }
 
 /* ── TEMA ESCURO (Preparado para o futuro) ── */
-/* Quando for criar o botão no JS, ele só precisará ativar a classe "dark-theme" na tag <body> */
 body.dark-theme {
   --bg-base:       #0d0f14;
   --bg-surface:    #141720;
@@ -309,7 +308,6 @@ body {
 /* CSS GRID board */
 .board {
   display: grid;
-  /* 1st col = shift label, then 7 day columns */
   grid-template-columns: var(--shift-label-w) repeat(7, minmax(var(--cell-min-w), 1fr));
   gap: 1px;
   background: var(--border);
@@ -797,14 +795,98 @@ select.form-input option { background: var(--bg-card); }
   pointer-events: none;
 }
 
-/* ── RESPONSIVE ─────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVIDADE (MOBILE APP UX)
+   ═══════════════════════════════════════════════════════ */
+
 @media (max-width: 900px) {
-  .sidebar { display: none; }
-  :root { --cell-min-w: 120px; }
+  /* Transforma a estrutura do site para "empilhar" os componentes */
+  body { flex-direction: column; }
+  
+  .main {
+    order: 1; /* Conteúdo principal sobe */
+    padding-bottom: 75px; /* Deixa espaço livre para a barra não cobrir a tela */
+  }
+
+  /* Transforma a Sidebar Lateral numa Barra Fixa Inferior (Estilo Instagram/App) */
+  .sidebar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 75px;
+    min-width: auto;
+    flex-direction: row;
+    padding: 8px 16px;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    z-index: 1000;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    padding-bottom: env(safe-area-inset-bottom, 8px); /* Para não bugar em iPhones sem botão */
+  }
+  
+  body.dark-theme .sidebar {
+    background: rgba(20, 23, 32, 0.95);
+  }
+
+  /* Oculta conteúdos desnecessários na barra inferior para poupar espaço */
+  .sidebar-logo, .sidebar-members, .sidebar-legend { display: none; }
+
+  /* Reorganiza os botões do menu horizontalmente */
+  .sidebar-nav {
+    flex-direction: row;
+    justify-content: space-around;
+    width: 100%;
+    padding: 0;
+  }
+
+  .nav-item {
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    font-size: 10px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .nav-item svg { width: 22px; height: 22px; margin: 0 auto; }
+
+  /* Garante o scroll horizontal do quadro mantendo as células largas o suficiente */
+  :root { --cell-min-w: 130px; }
+  
+  /* Ajusta os Toasts para não ficarem escondidos atrás da barra inferior */
+  .toast-container { bottom: 90px; right: 16px; left: 16px; }
+  .toast { width: 100%; text-align: center; }
 }
 
 @media (max-width: 600px) {
-  .week-label { font-size: 14px; min-width: 0; }
-  .search-wrap { display: none; }
-  .topbar { padding: 10px 14px; }
+  /* Encurta a barra do topo */
+  .topbar { padding: 12px 16px; gap: 8px; }
+  .week-label { font-size: 15px; min-width: 0; }
+  .search-wrap { display: none; } /* Oculta a pesquisa em ecrãs muito pequenos */
+  
+  .btn-primary { padding: 8px 12px; font-size: 12.5px; }
+  .btn-today { padding: 6px 10px; font-size: 12px; }
+
+  /* Faz com que as Janelas (Modais) ocupem quase todo o telemóvel */
+  .modal {
+    max-width: 95%;
+    max-height: 85vh;
+    overflow-y: auto;
+    border-radius: 12px;
+  }
+
+  /* Coloca os campos de formulário uns por baixo dos outros em vez de lado a lado */
+  .form-row { grid-template-columns: 1fr; gap: 12px; }
+  
+  .modal-header { padding: 16px; }
+  .modal-body { padding: 16px; }
+  
+  /* Ajusta o quadro de avisos e a lista de equipa para não ficarem cortados */
+  .member-item { font-size: 12px; }
+  .stat { padding: 10px; }
+  .stat-num { font-size: 18px; }
 }
