@@ -1,38 +1,12 @@
 /**
- * WeekPlanner — Vanilla JS
- * Com LocalStorage para salvar os dados no navegador
+ * WeekPlanner — Vanilla JS (Conectado à Nuvem)
  */
 
-// ─────────────────────────────────────────────────────────
-// CONFIGURAÇÃO DO SERVIDOR (Atenção aqui na hora do Deploy!)
-// ─────────────────────────────────────────────────────────
-
 const API_BASE  = 'https://t1-topografia-backend.onrender.com';  
-const USE_MOCK  = false;                      
-
-// ─────────────────────────────────────────────────────────
-// DADOS INICIAIS (Carregados apenas na primeira vez)
-// ─────────────────────────────────────────────────────────
-const INITIAL_USERS = [
-  { id: 1, nome: 'Ana Lima',     email: 'ana@equipe.com',     avatar: 'AL', cor: '#E76F51', cargo: 'Engenheira Civil' },
-  { id: 2, nome: 'Bruno Melo',   email: 'bruno@equipe.com',   avatar: 'BM', cor: '#2A9D8F', cargo: 'Topógrafo' },
-  { id: 3, nome: 'Carla Souza',  email: 'carla@equipe.com',   avatar: 'CS', cor: '#9B5DE5', cargo: 'Arquiteta' },
-  { id: 4, nome: 'Diego Ramos',  email: 'diego@equipe.com',   avatar: 'DR', cor: '#F4A261', cargo: 'Analista de Projetos' },
-  { id: 5, nome: 'Elisa Torres', email: 'elisa@equipe.com',   avatar: 'ET', cor: '#457B9D', cargo: 'Estagiária' },
-];
-
-const INITIAL_TASKS = [
-  { id:1,  titulo:'Reunião de Kickoff',      descricao:'Alinhar sprint da semana',              dia_da_semana:1, turno:'manha',  status:'concluido',    user_id:1 },
-  { id:2,  titulo:'Levantamento Planimétrico',descricao:'Terreno no centro',                    dia_da_semana:1, turno:'tarde',  status:'em_andamento', user_id:2 },
-  { id:3,  titulo:'Deploy homologação',      descricao:'Subir versão 1.2.3 para HML',           dia_da_semana:1, turno:'noite',  status:'a_fazer',      user_id:3 }
-];
 
 let statusChartInstance = null;
 let memberChartInstance = null;
 
-// ─────────────────────────────────────────────────────────
-// STATE GERAL (Memória da Aplicação)
-// ─────────────────────────────────────────────────────────
 let state = {
   tasks:       [],
   users:       [],
@@ -43,34 +17,34 @@ let state = {
 };
 
 // ─────────────────────────────────────────────────────────
-// SISTEMA DE SALVAMENTO (LOCAL STORAGE)
+// SINCRONIZAÇÃO COM A NUVEM
 // ─────────────────────────────────────────────────────────
-function salvarNoNavegador() {
-    if (!USE_MOCK) {
-        localStorage.setItem('wp_users', JSON.stringify(state.users));
-        localStorage.setItem('wp_tasks', JSON.stringify(state.tasks));
-        localStorage.setItem('wp_avisos', JSON.stringify(state.avisos));
+async function carregarDaNuvem() {
+    try {
+        const [resUsers, resTasks, resAvisos] = await Promise.all([
+            fetch(`${API_BASE}/users`),
+            fetch(`${API_BASE}/tasks`),
+            fetch(`${API_BASE}/avisos`)
+        ]);
+        
+        if (resUsers.ok) state.users = await resUsers.json();
+        if (resTasks.ok) state.tasks = await resTasks.json();
+        if (resAvisos.ok) state.avisos = await resAvisos.json();
+        
+        renderMembers();
+        renderAvisos();
+        renderBoard();
+        if(document.getElementById('team-view').style.display === 'flex') renderTeamTab();
+        if(document.getElementById('reports-view').style.display === 'flex') renderReportsTab();
+        
+    } catch (e) {
+        console.error("Erro ao conectar com a API:", e);
+        toast('Erro de conexão: Servidor indisponível ou dormindo.', 'error');
     }
 }
 
-function carregarDoNavegador() {
-    const savedUsers = localStorage.getItem('wp_users');
-    const savedTasks = localStorage.getItem('wp_tasks');
-    const savedAvisos = localStorage.getItem('wp_avisos');
-
-    state.users = savedUsers ? JSON.parse(savedUsers) : structuredClone(INITIAL_USERS);
-    state.avisos = savedAvisos ? JSON.parse(savedAvisos) : [];
-    
-    let rawTasks = savedTasks ? JSON.parse(savedTasks) : structuredClone(INITIAL_TASKS);
-    
-    state.tasks = rawTasks.map(t => {
-        t.user = state.users.find(u => u.id === t.user_id) || null;
-        return t;
-    });
-}
-
 // ─────────────────────────────────────────────────────────
-// CONSTANTS
+// CONSTANTS & HELPERS
 // ─────────────────────────────────────────────────────────
 const DAYS = [
   { num: 1, short: 'SEG', full: 'Segunda-feira'  },
@@ -94,9 +68,6 @@ const STATUS_LABELS = {
   concluido:    'Concluído',
 };
 
-// ─────────────────────────────────────────────────────────
-// WEEK HELPERS
-// ─────────────────────────────────────────────────────────
 function getWeekDates(offset = 0) {
   const now = new Date();
   const day = now.getDay(); 
@@ -132,18 +103,14 @@ function getFormatDateISO(dateObj) {
 }
 
 // ─────────────────────────────────────────────────────────
-// LÓGICA DO MODAL DE CONFIRMAÇÃO
+// CONFIRMAÇÃO CUSTOMIZADA
 // ─────────────────────────────────────────────────────────
 let confirmResolve = null;
-
 function customConfirm(msg) {
   document.getElementById('confirm-message').textContent = msg;
   document.getElementById('modal-confirm').classList.add('is-open');
-  return new Promise(resolve => {
-    confirmResolve = resolve;
-  });
+  return new Promise(resolve => { confirmResolve = resolve; });
 }
-
 function closeConfirm(result) {
   document.getElementById('modal-confirm').classList.remove('is-open');
   if (confirmResolve) confirmResolve(result);
@@ -413,7 +380,7 @@ function closeAvisoModal() {
     document.getElementById('modal-aviso').classList.remove('is-open');
 }
 
-function saveAviso() {
+async function saveAviso() {
     const category = document.getElementById('aviso-category').value;
     const text = document.getElementById('aviso-desc').value.trim();
     const dataLimite = document.getElementById('aviso-prazo').value.trim();
@@ -424,33 +391,32 @@ function saveAviso() {
         document.getElementById('aviso-desc').focus();
         return; 
     }
+    if(category === 'levantamento') type = document.getElementById('aviso-tipo').value;
 
-    if(category === 'levantamento') {
-        type = document.getElementById('aviso-tipo').value;
+    const payload = { category, type: type || null, text, dataLimite: dataLimite || null };
+
+    try {
+        await fetch(`${API_BASE}/avisos`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify(payload) 
+        });
+        await carregarDaNuvem();
+        closeAvisoModal();
+        toast('Pendência registrada com sucesso!', 'success');
+    } catch(e) {
+        toast('Erro ao registrar pendência', 'error');
     }
-
-    state.avisos.push({
-        id: Date.now(),
-        category: category,
-        type: type,
-        text: text,
-        dataLimite: dataLimite
-    });
-
-    salvarNoNavegador();
-    renderAvisos();
-    closeAvisoModal();
-    toast('Pendência registrada com sucesso!', 'success');
 }
 
 async function deleteAviso(id) {
     const confirmed = await customConfirm("Tem certeza que deseja excluir esta pendência?");
     if (!confirmed) return;
-
-    state.avisos = state.avisos.filter(a => a.id !== id);
-    salvarNoNavegador();
-    renderAvisos();
-    toast('Pendência removida', 'info');
+    try {
+        await fetch(`${API_BASE}/avisos/${id}`, { method: 'DELETE' });
+        await carregarDaNuvem();
+        toast('Pendência removida', 'info');
+    } catch(e) { toast('Erro ao deletar', 'error'); }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -488,15 +454,11 @@ function renderTeamTab() {
 async function deleteMember(id) {
     const confirmed = await customConfirm("Tem certeza que deseja excluir este membro da equipe?");
     if (!confirmed) return;
-    
-    state.users = state.users.filter(u => u.id !== id);
-    state.tasks = state.tasks.filter(t => t.user_id !== id);
-    
-    salvarNoNavegador();
-    renderTeamTab();
-    renderMembers();
-    renderBoard();
-    toast("Membro excluído", "info");
+    try {
+        await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE' });
+        await carregarDaNuvem();
+        toast("Membro excluído", "info");
+    } catch(e) { toast("Erro ao excluir", "error"); }
 }
 
 function openMemberModal() {
@@ -511,7 +473,7 @@ function closeMemberModal() {
     document.getElementById('modal-member').classList.remove('is-open');
 }
 
-function saveMember() {
+async function saveMember() {
     const nome = document.getElementById('member-nome').value.trim();
     if(!nome) {
         toast('Por favor, digite o nome do membro.', 'error');
@@ -519,25 +481,24 @@ function saveMember() {
         return;
     }
 
-    const cargo = document.getElementById('member-cargo').value.trim() || 'Membro';
-    const email = document.getElementById('member-email').value.trim() || 'sem@email.com';
-    const cor = '#' + Math.floor(Math.random()*16777215).toString(16);
-
-    const newUser = {
-        id: Date.now(),
+    const payload = {
         nome: nome,
-        cargo: cargo,
-        email: email,
-        cor: cor,
+        cargo: document.getElementById('member-cargo').value.trim() || 'Membro',
+        email: document.getElementById('member-email').value.trim() || 'sem@email.com',
+        cor: '#' + Math.floor(Math.random()*16777215).toString(16),
         avatar: nome.substring(0,2).toUpperCase()
     };
 
-    state.users.push(newUser);
-    salvarNoNavegador();
-    renderTeamTab();
-    renderMembers();
-    closeMemberModal();
-    toast(nome + " adicionado(a) à equipe!", "success");
+    try {
+        await fetch(`${API_BASE}/users`, { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify(payload) 
+        });
+        await carregarDaNuvem();
+        closeMemberModal();
+        toast(nome + " adicionado(a) à equipe!", "success");
+    } catch(e) { toast("Erro ao salvar membro", "error"); }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -661,7 +622,7 @@ function closeTaskModal() {
   document.getElementById('modal-task').classList.remove('is-open');
 }
 
-function saveTask() {
+async function saveTask() {
   const id = document.getElementById('task-id').value;
   const titulo= document.getElementById('task-titulo').value.trim();
 
@@ -672,8 +633,6 @@ function saveTask() {
   }
 
   const userId = parseInt(document.getElementById('task-user').value);
-  const userObj = state.users.find(u => u.id === userId);
-
   const diaNum = parseInt(document.getElementById('task-dia').value);
   const dates = getWeekDates(state.weekOffset);
   const dataExata = getFormatDateISO(dates[diaNum - 1]); 
@@ -685,25 +644,20 @@ function saveTask() {
     turno:         document.getElementById('task-turno').value,
     status:        document.getElementById('task-status').value,
     user_id:       userId,
-    user:          userObj,
     data_exata:    dataExata
   };
 
-  if (id) {
-    const idx = state.tasks.findIndex(t => t.id === parseInt(id));
-    if (idx !== -1) {
-        state.tasks[idx] = { ...state.tasks[idx], ...payload };
-    }
-    toast('Tarefa atualizada!', 'success');
-  } else {
-    payload.id = Date.now();
-    state.tasks.push(payload);
-    toast('Tarefa criada!', 'success');
-  }
-  
-  salvarNoNavegador();
-  closeTaskModal();
-  renderBoard();
+  try {
+      if (id) {
+          await fetch(`${API_BASE}/tasks/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+          toast('Tarefa atualizada!', 'success');
+      } else {
+          await fetch(`${API_BASE}/tasks`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+          toast('Tarefa criada!', 'success');
+      }
+      await carregarDaNuvem();
+      closeTaskModal();
+  } catch(e) { toast("Erro ao salvar tarefa.", "error"); }
 }
 
 function openDetailModal(task) {
@@ -734,40 +688,39 @@ function closeDetailModal() {
   state.detailTask = null;
 }
 
-function changeStatus(newStatus) {
+async function changeStatus(newStatus) {
   if (!state.detailTask) return;
-  
-  const idx = state.tasks.findIndex(t => t.id === state.detailTask.id);
-  if (idx !== -1) {
-      state.tasks[idx].status = newStatus;
-  }
-  state.detailTask.status = newStatus;
+  try {
+      await fetch(`${API_BASE}/tasks/${state.detailTask.id}`, {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ status: newStatus })
+      });
+      
+      const badge = document.getElementById('detail-badge');
+      badge.textContent = STATUS_LABELS[newStatus];
+      badge.className = `detail-badge detail-badge--${newStatus}`;
 
-  const badge = document.getElementById('detail-badge');
-  badge.textContent = STATUS_LABELS[newStatus];
-  badge.className = `detail-badge detail-badge--${newStatus}`;
+      document.querySelectorAll('.status-option').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.status === newStatus);
+      });
 
-  document.querySelectorAll('.status-option').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.status === newStatus);
-  });
-
-  salvarNoNavegador();
-  renderBoard();
-  toast('Status atualizado!', 'success');
+      await carregarDaNuvem();
+      state.detailTask = state.tasks.find(t => t.id === state.detailTask.id);
+      toast('Status atualizado!', 'success');
+  } catch(e) { toast('Erro ao atualizar status', 'error'); }
 }
 
 async function deleteTask() {
   if (!state.detailTask) return;
-  
   const confirmed = await customConfirm(`Excluir a tarefa "${state.detailTask.titulo}"?`);
   if (!confirmed) return;
-  
-  state.tasks = state.tasks.filter(t => t.id !== state.detailTask.id);
-  salvarNoNavegador();
-  
-  closeDetailModal();
-  renderBoard();
-  toast('Tarefa excluída.', 'info');
+  try {
+      await fetch(`${API_BASE}/tasks/${state.detailTask.id}`, { method: 'DELETE' });
+      await carregarDaNuvem();
+      closeDetailModal();
+      toast('Tarefa excluída.', 'info');
+  } catch(e) { toast('Erro ao excluir tarefa', 'error'); }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -803,22 +756,13 @@ function loadTheme() {
   }
 }
 
-// ─────────────────────────────────────────────────────────
-// EXPORTAÇÃO DE DADOS (CSV) — VERSÃO BLINDADA
-// ─────────────────────────────────────────────────────────
 function exportToCSV() {
     try {
         if (!state.tasks || state.tasks.length === 0) {
-            if (typeof toast === 'function') {
-                toast('Nenhuma tarefa cadastrada para exportar.', 'error');
-            } else {
-                alert('Nenhuma tarefa cadastrada para exportar. Crie uma tarefa primeiro!');
-            }
+            toast('Nenhuma tarefa cadastrada para exportar.', 'error');
             return;
         }
-        
         const headers = ['ID', 'Titulo', 'Descricao', 'Dia da Semana', 'Turno', 'Status', 'Responsavel', 'Data Exata'];
-        
         const rows = state.tasks.map(t => [
             t.id,
             `"${(t.titulo || '').replace(/"/g, '""')}"`,
@@ -829,12 +773,9 @@ function exportToCSV() {
             t.user ? t.user.nome : 'Sem Responsável',
             t.data_exata || 'Sem Data'
         ]);
-        
         const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
-        
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
-        
         const link = document.createElement('a');
         link.setAttribute('href', url);
         link.setAttribute('download', 'T1_Topografia_Relatorio.csv');
@@ -842,16 +783,8 @@ function exportToCSV() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
-        if (typeof toast === 'function') {
-            toast('Relatório CSV exportado com sucesso!', 'success');
-        } else {
-            alert('Relatório CSV exportado com sucesso!');
-        }
-    } catch (error) {
-        console.error('Erro ao exportar CSV:', error);
-        alert('Ocorreu um erro técnico ao gerar o CSV. Verifique o console (F12).');
-    }
+        toast('Relatório CSV exportado com sucesso!', 'success');
+    } catch (error) { toast('Ocorreu um erro ao gerar o CSV.', 'error'); }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -863,37 +796,24 @@ async function addSubtask() {
     if (!titulo || !state.detailTask) return;
 
     try {
-        const res = await fetch(`${API_BASE}/tasks/${state.detailTask.id}/subtasks`, {
+        await fetch(`${API_BASE}/tasks/${state.detailTask.id}/subtasks`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ titulo })
         });
-        if (!res.ok) throw new Error('Erro ao adicionar subtarefa. O servidor Python está rodando?');
-        
-        const newSubtask = await res.json();
-        state.detailTask.subtasks = state.detailTask.subtasks || [];
-        state.detailTask.subtasks.push(newSubtask);
-        
         input.value = '';
+        await carregarDaNuvem();
+        state.detailTask = state.tasks.find(t => t.id === state.detailTask.id); 
         renderSubtasks();
-        renderBoard(); 
-    } catch (err) {
-        toast(err.message, 'error');
-    }
+    } catch (err) { toast('Erro ao adicionar subtarefa', 'error'); }
 }
 
 async function toggleSubtask(subtaskId, isChecked) {
     try {
-        const res = await fetch(`${API_BASE}/subtasks/${subtaskId}?concluida=${isChecked}`, { method: 'PUT' });
-        if (!res.ok) throw new Error('Erro ao atualizar subtarefa');
-        
-        const st = state.detailTask.subtasks.find(s => s.id === subtaskId);
-        if (st) st.concluida = isChecked;
-        
-        renderBoard();
-    } catch (err) {
-        toast(err.message, 'error');
-    }
+        await fetch(`${API_BASE}/subtasks/${subtaskId}?concluida=${isChecked}`, { method: 'PUT' });
+        await carregarDaNuvem();
+        state.detailTask = state.tasks.find(t => t.id === state.detailTask.id);
+    } catch (err) { toast('Erro ao atualizar checklist', 'error'); }
 }
 
 function renderSubtasks() {
@@ -987,16 +907,12 @@ function bindEvents() {
 // ─────────────────────────────────────────────────────────
 // INICIALIZAÇÃO
 // ─────────────────────────────────────────────────────────
-function init() {
+async function init() {
   try {
     loadTheme(); 
-    carregarDoNavegador(); 
-    
-    renderMembers();
-    renderBoard();
+    await carregarDaNuvem(); 
     bindEvents();
     bindTabNavigation();
-    
   } catch (err) {
     toast('Erro ao inicializar: ' + err.message, 'error');
     console.error(err);
